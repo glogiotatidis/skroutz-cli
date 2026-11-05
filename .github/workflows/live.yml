@@ -1,0 +1,53 @@
+name: live
+
+# Daily canary against the real thing: the OAuth metadata and token endpoints and
+# the shopping MCP server. A red run here means Skroutz changed something, not
+# that a mock drifted.
+on:
+  schedule:
+    - cron: "30 5 * * *"   # 05:30 UTC = 07:30 Athens (EET) / 08:30 (EEST)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    name: live smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Secrets cannot be read inside an `if:`, so they are lifted into env here and
+    # the step conditions test env instead.
+    env:
+      SKROUTZ_ACCESS_TOKEN: ${{ secrets.SKROUTZ_ACCESS_TOKEN }}
+      SKROUTZ_REFRESH_TOKEN: ${{ secrets.SKROUTZ_REFRESH_TOKEN }}
+      SKROUTZ_CLIENT_ID: ${{ secrets.SKROUTZ_CLIENT_ID }}
+      SKROUTZ_CLIENT_SECRET: ${{ secrets.SKROUTZ_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      # The metadata, token-endpoint and MCP-reachability checks need no
+      # credentials. Account tests read SKROUTZ_ACCESS_TOKEN and skip themselves
+      # when it is absent, so a fork without secrets still gets the public checks.
+      - name: Live - OAuth metadata and MCP
+        run: pytest tests/live -m "live and not refresh" -v
+
+      # Not in the daily path on purpose: refreshing rotates the refresh token,
+      # so a run that does not write the new value back into the secret kills the
+      # credential it just used. Enable only together with a writeback step
+      # (`gh secret set SKROUTZ_REFRESH_TOKEN`) and a PAT allowed to write secrets.
+      - name: Live - refresh grant (manual dispatch only)
+        if: github.event_name == 'workflow_dispatch' && env.SKROUTZ_REFRESH_TOKEN != ''
+        run: pytest tests/live -m refresh -v

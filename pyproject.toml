@@ -1,0 +1,31 @@
+[project]
+name = "skroutz-cli"
+version = "0.5.0"
+description = "Skroutz.gr search, prices, cart and orders in the terminal, over the official MCP server"
+requires-python = ">=3.9"
+# No runtime dependencies: the OAuth endpoints and the MCP server are JSON APIs and
+# the package talks to them with urllib. Nothing here reads HTML.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+skroutz = "skroutz_cli.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["skroutz_cli*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The default run is offline: live tests hit the real site and only run in the
+# scheduled workflow (`pytest -m live`).
+addopts = "-m 'not live'"
+markers = [
+    "live: hits the real skroutz.gr / MCP endpoint, needs network",
+    "refresh: consumes a rotating refresh token — run by hand only",
+]
