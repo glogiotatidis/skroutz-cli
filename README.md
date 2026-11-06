@@ -94,15 +94,6 @@ Notes that cost time to learn:
 - Refreshing **rotates** the refresh token. Persist the response before using it, or the next call
   logs you out. `auth.valid_token()` saves first; do not re-issue a refresh to "check" it.
 
-## Why there is no scraping here
-
-The storefront sits behind Cloudflare's managed challenge, which a plain HTTP client cannot pass, so
-an earlier version replayed a Chrome TLS fingerprint with `curl_cffi` and even drove the storefront's
-own cart. Both are gone. The OAuth endpoints and the MCP server are JSON APIs that answer a plain
-`urllib` request, and the live suite asserts exactly that, so the dependency and the whole
-fingerprint-fallback machinery went with them. If a future change puts Cloudflare in front of these
-JSON endpoints, `skroutz_cli/_http.py` is the single file to teach about TLS fingerprints.
-
 ## Tests and CI
 
 ```bash
