@@ -128,4 +128,4 @@ rendering lives in `cli.py`.
 
 ## License
 
-MIT
+GPL-3.0, see [LICENSE](LICENSE).
